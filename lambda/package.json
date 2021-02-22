@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "csv-stringify": "^5.6.1",
     "nodemailer": "^6.4.18"
   },
   "devDependencies": {

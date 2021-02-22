@@ -14,14 +14,15 @@ export class MailStreamStack extends cdk.Stack {
     
     // DynamoDBの作成
     const table = new dynamodb.Table(this, 'Dynamodb', {
-      partitionKey: { name: 'path', type: dynamodb.AttributeType.STRING }
+      tableName: 'sampletable',
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.NUMBER }
     });
 
     // Lambda関数の作成
     const lambdaFunction = new lambda.Function(this, 'Lambda', {
-      runtime: lambda.Runtime.NODEJS_12_X,      // execution environment
-      code: lambda.Code.fromAsset('lambda'),  // code loaded from the "lambda" directory
-      handler: 'lambda.handler',                // file is "lambda", function is "handler"
+      runtime: lambda.Runtime.NODEJS_12_X,
+      code: lambda.Code.fromAsset('lambda'),
+      handler: 'lambda.handler',
       environment: {
         HITS_TABLE_NAME: table.tableName
       }
@@ -39,12 +40,12 @@ export class MailStreamStack extends cdk.Stack {
     
     // ファイル格納用S3バケットの作成
     const bucket = new s3.Bucket(this, 'S3Bucket', {
-      bucketName: '**********'
+      bucketName: '**********',
     })
 
-    // Lambda関数にS3バケットの読み取り権限を付与
-    bucket.grantRead(lambdaFunction)
-    
+    // Lambda関数にS3バケットに対するread/write権限を付与
+    bucket.grantReadWrite(lambdaFunction)
+
     // Lambda関数がSESのメール送信機能を使えるポリシーの作成
     const sesPolicy = new iam.PolicyStatement({
       actions: ['ses:SendEmail', 'ses:SendRawEmail'],

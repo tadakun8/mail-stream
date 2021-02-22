@@ -1,15 +1,21 @@
 import * as AWS from 'aws-sdk';
-import { downloadObject, sendEmail } from './module'
+import { downloadObject, sendEmail, scanDynamodb, uploadFile } from './module'
 
 exports.handler = async function(event:any, context:any) {
 
-  // S3からファイルをダウンロード
+  // Dynamodbから全件取得する
+  await scanDynamodb()
+
+  // 取得したデータをcsv形式でS3バケットにアップロード
+  await uploadFile()
+
+  // S3バケットからファイルをダウンロード
   await downloadObject()
 
   // Eメールを送る
   await sendEmail()
 
-  return response(200, 'You have connected with the Lambda!');
+  return response(200, 'Plese Email.');
 };
 
 /**
