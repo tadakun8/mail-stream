@@ -5,6 +5,7 @@ import apigw = require('@aws-cdk/aws-apigatewayv2');
 import integrations = require('@aws-cdk/aws-apigatewayv2-integrations');
 import s3 = require('@aws-cdk/aws-s3');
 import iam = require('@aws-cdk/aws-iam')
+import { CONST } from './config'
 
 export class MailStreamStack extends cdk.Stack {
   
@@ -12,27 +13,28 @@ export class MailStreamStack extends cdk.Stack {
     
     super(scope, id, props);
     
-    // DynamoDBの作成
-    const table = new dynamodb.Table(this, 'Dynamodb', {
-      tableName: 'sampletable',
-      partitionKey: { name: 'id', type: dynamodb.AttributeType.NUMBER }
-    });
-
     // Lambda関数の作成
     const lambdaFunction = new lambda.Function(this, 'Lambda', {
       runtime: lambda.Runtime.NODEJS_12_X,
       code: lambda.Code.fromAsset('lambda'),
       handler: 'lambda.handler',
       environment: {
-        HITS_TABLE_NAME: table.tableName
+        TABLE_NAME: CONST.TABLE_NAME,
+        BUCKET_NAME: CONST.BUCKET_NAME
       }
+    });
+    
+    // DynamoDBの作成
+    const table = new dynamodb.Table(this, 'Dynamodb', {
+      tableName: CONST.TABLE_NAME,
+      partitionKey: { name: CONST.PARTITION_KEY_NAME , type: dynamodb.AttributeType.NUMBER }
     });
 
     // Lambda関数にDynamodbに対するread/write権限を付与
     table.grantReadWriteData(lambdaFunction);
 
     // APIGatewayの作成
-    const api = new apigw.HttpApi(this, 'ApiGateway', {
+    const apiGateway = new apigw.HttpApi(this, 'ApiGateway', {
       defaultIntegration: new integrations.LambdaProxyIntegration({
         handler: lambdaFunction
       })
@@ -40,7 +42,7 @@ export class MailStreamStack extends cdk.Stack {
     
     // ファイル格納用S3バケットの作成
     const bucket = new s3.Bucket(this, 'S3Bucket', {
-      bucketName: '**********',
+      bucketName: CONST.BUCKET_NAME
     })
 
     // Lambda関数にS3バケットに対するread/write権限を付与
@@ -57,7 +59,7 @@ export class MailStreamStack extends cdk.Stack {
     lambdaFunction.addToRolePolicy(sesPolicy)
 
     new cdk.CfnOutput(this, 'HTTP API Url', {
-      value: api.url ?? 'Something went wrong with the deploy'
+      value: apiGateway.url ?? 'Something went wrong with the deploy'
     });
   }
 }
