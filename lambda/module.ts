@@ -162,10 +162,121 @@ export const uploadFile = async (s3: AWS.S3, bucket_name: string, key_name: stri
     }
 }
 
+/**
+ * dynamodbにデータを書き込む関数 (データはテストデータを使用)
+ * @param dynamodb dynamodbクライアント
+ * @param table_name テーブル名
+ */
+export const writeDynamodb = async (dynamodb: AWS.DynamoDB.DocumentClient, table_name: string) => {
+    try {
+        console.log('Start write dynamodb !')
+        
+        const testData = [
+            {id: 1, content: 'こんにちは', good: 0},
+            {id: 2, content: 'おはよう', good: 3},
+            {id: 3, content: 'おやすみ', good: 3},
+            {id: 4, content: 'good night', good: 9},
+            {id: 5, content: 'さようなら', good: 100},
+            {id: 11, content: 'こんにちは', good: 0},
+            {id: 12, content: 'おはよう', good: 3},
+            {id: 13, content: 'おやすみ', good: 3},
+            {id: 14, content: 'good night', good: 9},
+            {id: 15, content: 'さようなら', good: 100},
+            {id: 21, content: 'こんにちは', good: 0},
+            {id: 22, content: 'おはよう', good: 3},
+            {id: 23, content: 'おやすみ', good: 3},
+            {id: 24, content: 'good night', good: 9},
+            {id: 25, content: 'さようなら', good: 100},
+            {id: 31, content: 'こんにちは', good: 0},
+            {id: 32, content: 'おはよう', good: 3},
+            {id: 33, content: 'おやすみ', good: 3},
+            {id: 34, content: 'good night', good: 9},
+            {id: 35, content: 'さようなら', good: 100},
+            {id: 41, content: 'こんにちは', good: 0},
+            {id: 42, content: 'おはよう', good: 3},
+            {id: 43, content: 'おやすみ', good: 3},
+            {id: 44, content: 'good night', good: 9},
+            {id: 45, content: 'さようなら', good: 100},
+            {id: 51, content: 'こんにちは', good: 0},
+            {id: 52, content: 'おはよう', good: 3},
+            {id: 53, content: 'おやすみ', good: 3},
+            {id: 54, content: 'good night', good: 9},
+            {id: 55, content: 'さようなら', good: 100},
+        ];
+
+        // Dynamodbの仕様上、書き込みデータの最大は25個という制約がある
+        // 書き込みデータが25個になるように調整
+        const chunkedTestData = chunk(testData, 25)
+
+        // dynamodbのクエリを作成
+        const params: AWS.DynamoDB.DocumentClient.BatchWriteItemInput[] = 
+            chunkedTestData.map((testdata: object[]) => {
+                return makeBatchWriteItemInput(table_name, testdata)
+            })
+ 
+        console.log("Write dynamodb ...")
+        
+        // dynamodbへデータの書き込み
+        for(const param of params) {
+            await dynamodb.batchWrite(param).promise()
+        }
+
+        console.log("Success write dynamodb !")
+    } catch(err) {
+        console.log(err)
+        throw err;
+    }
+}
+
+/**
+ * dynamodbのbatchWrite()を使用するときの引数を作成する関数
+ * @param table_name テーブル名
+ * @param data 書き込むデータ
+ */
+const makeBatchWriteItemInput = (table_name: string, data: object[]): AWS.DynamoDB.DocumentClient.BatchWriteItemInput => {
+
+    // 書き込むデータごとにリクエストを生成
+    const writeRequests = data.map((item: object): AWS.DynamoDB.DocumentClient.WriteRequest => {
+        return {
+            PutRequest: {
+                Item: item
+            }
+        }
+    })
+
+    // どのテーブルに書き込むかという最終的なリクエストを生成
+    const batchWriteItemInput: AWS.DynamoDB.DocumentClient.BatchWriteItemInput = {
+        RequestItems: {
+            [table_name]: writeRequests
+        }
+    }
+    
+    return batchWriteItemInput
+}
+
+/**
+ * 配列を指定の個数で区切る関数
+ * (lodash.chunk()をネイティブコードで実装した関数)
+ * https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore#_chunk
+ * @param input 対象配列
+ * @param size 指定サイズ
+ */
+const chunk = (input: any[], size: number) => {
+    return input.reduce((arr, item, idx) => {
+      return idx % size === 0
+        ? [...arr, [item]]
+        : [...arr.slice(0, -1), [...arr.slice(-1)[0], item]];
+    }, []);
+};
 
 // const processAll = async () => {
-//     await scanDynamodb()
-//     await uploadFile()
+//     const dynamodb =  new AWS.DynamoDB.DocumentClient({region: 'ap-northeast-1'})
+//     const table = "mail-stream-sample"
+//     await writeDynamodb(dynamodb, "mail-stream-table")
+//     await scanDynamodb(dynamodb, "mail-stream-table", "latest.csv")
+    
+    
 // }
 
 // processAll()
+

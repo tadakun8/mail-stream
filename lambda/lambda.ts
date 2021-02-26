@@ -1,5 +1,5 @@
 import * as AWS from 'aws-sdk';
-import { downloadObject, sendEmail, scanDynamodb, uploadFile } from './module'
+import { downloadObject, sendEmail, scanDynamodb, uploadFile, writeDynamodb } from './module'
 
 // AWSサービスクライアント
 const s3 = new AWS.S3()
@@ -8,7 +8,7 @@ const ses = new AWS.SES({
   region: 'ap-northeast-1'
 })
 const dynamodb = new AWS.DynamoDB.DocumentClient({
-  region: 'us-east-2'
+  region: 'ap-northeast-1'
 })
 
 const BUCKET_NAME = process.env.BUCKET_NAME
@@ -25,6 +25,9 @@ const ATTACHMENT_FILE_NAME = 'latest.csv'
 const ATTACHMENT_FILE_PATH = '/tmp/latest.csv'
 
 exports.handler = async (event:any, context:any, callback: Function) => {
+
+  // Dynamodbにデータを格納する
+  await writeDynamodb(dynamodb, TABLE_NAME)
 
   // Dynamodbから全件取得する
   await scanDynamodb(dynamodb, TABLE_NAME, QUERY_OUTPUT_FILE_PATH)
